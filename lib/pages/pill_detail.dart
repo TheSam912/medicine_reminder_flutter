@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:millioner_app/bloc/global_bloc.dart';
 import 'package:millioner_app/constant/constant.dart';
+import 'package:millioner_app/model/medicine.dart';
+import 'package:provider/provider.dart';
 
-class PillDetailPage extends StatelessWidget {
-  PillDetailPage(
-      {super.key,
-      required this.name,
-      required this.dosage,
-      required this.interval,
-      required this.startTime});
-  String name;
-  String dosage;
-  String startTime;
-  String interval;
+class PillDetailPage extends StatefulWidget {
+  PillDetailPage({required this.medicine});
+  final Medicine medicine;
 
   @override
+  State<PillDetailPage> createState() => _PillDetailPageState();
+}
+
+class _PillDetailPageState extends State<PillDetailPage> {
+  @override
   Widget build(BuildContext context) {
+    final globalBloc = Provider.of<GlobalBloc>(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: kPrimaryColor,
@@ -26,13 +27,13 @@ class PillDetailPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             myMainInfo(
-              pillName: name,
-              dosage: "$dosage mg",
+              pillName: widget.medicine.medicineName!,
+              dosage: "${widget.medicine.dosage} mg",
             ),
             myExtendedInfo(
               type: "Medicine",
-              interval: "Every $interval Hour",
-              startTime: "Start from $startTime",
+              interval: "Every ${widget.medicine.interval} Hour",
+              startTime: "Start from ${widget.medicine.startTime}",
             ),
             const SizedBox(
               height: 50,
@@ -40,7 +41,7 @@ class PillDetailPage extends StatelessWidget {
             GestureDetector(
               onTap: () {
                 // ignore: void_checks
-                return openAlertBox(context);
+                return openAlertBox(context, globalBloc);
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
@@ -62,7 +63,7 @@ class PillDetailPage extends StatelessWidget {
     );
   }
 
-  openAlertBox(BuildContext context) {
+  openAlertBox(BuildContext context, GlobalBloc _globalBloc) {
     return showDialog(
         context: context,
         builder: (_) {
@@ -78,7 +79,12 @@ class PillDetailPage extends StatelessWidget {
                     Navigator.of(context).pop();
                   },
                   child: const Text("Cancel")),
-              TextButton(onPressed: () {}, child: const Text("Yes")),
+              TextButton(
+                  onPressed: () {
+                    _globalBloc.removeMedicine(widget.medicine);
+                    Navigator.popUntil(context, ModalRoute.withName("/"));
+                  },
+                  child: const Text("Yes")),
             ],
           );
         });

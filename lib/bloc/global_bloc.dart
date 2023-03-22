@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:millioner_app/model/medicine.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +29,31 @@ class GlobalBloc {
       }
       _medicineList$!.add(prefList);
     }
+  }
+
+  Future removeMedicine(Medicine index) async {
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+    SharedPreferences sharedUser = await SharedPreferences.getInstance();
+    List<String> medicineJsonList = [];
+
+    var blockList = _medicineList$!.value;
+    blockList
+        .removeWhere((medicine) => medicine.medicineName == index.medicineName);
+
+    for (int i = 0; i < (24 / index.interval!).floor(); i++) {
+      flutterLocalNotificationsPlugin
+          .cancel(int.parse(index.notificationId![i]));
+    }
+    if (blockList.isNotEmpty) {
+      for (var blockMedicine in blockList) {
+        String medicineJson = jsonEncode(blockMedicine.toJson());
+        medicineJsonList.add(medicineJson);
+      }
+    }
+
+    sharedUser.setStringList('medicines', medicineJsonList);
+    _medicineList$!.add(blockList);
   }
 
   Future updateMedicineList(Medicine newMedicine) async {

@@ -7,6 +7,7 @@ class SuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.green.shade800,
+      appBar: AppBar(),
       body: const Center(
         child: Text("Medicine Successfully Added !"),
       ),

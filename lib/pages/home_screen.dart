@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:millioner_app/bloc/global_bloc.dart';
 import 'package:millioner_app/model/medicine.dart';
@@ -57,10 +55,7 @@ class myGridCardItem extends StatelessWidget {
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) {
             return PillDetailPage(
-              name: medicine.getName,
-              dosage: medicine.dosage.toString(),
-              interval: medicine.interval.toString(),
-              startTime: medicine.startTime.toString(),
+              medicine: medicine,
             );
           }));
         },

@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:millioner_app/constant/constant.dart';
+import 'package:millioner_app/pages/home_screen.dart';
 import 'package:millioner_app/utils/convert_time.dart';
 import 'package:millioner_app/utils/errors.dart';
 import 'package:millioner_app/bloc/global_bloc.dart';
@@ -21,7 +23,9 @@ class NewEntryPage extends StatefulWidget {
 class _NewEntryPageState extends State<NewEntryPage> {
   late TextEditingController pillNameController;
   late TextEditingController pillDosageController;
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late NewEntryBloc _newEntryBloc;
+  late GlobalKey<ScaffoldState> _scaffoldKey;
   final List<String> _intervals = ['6', '8', '12', '24']; // Option 2
   var _selectedInterval;
 
@@ -45,8 +49,11 @@ class _NewEntryPageState extends State<NewEntryPage> {
   void initState() {
     super.initState();
     _newEntryBloc = NewEntryBloc();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     pillNameController = TextEditingController();
     pillDosageController = TextEditingController();
+    _scaffoldKey = GlobalKey<ScaffoldState>();
+    initializNotifications();
     initializeErrorList();
   }
 
@@ -62,6 +69,7 @@ class _NewEntryPageState extends State<NewEntryPage> {
   Widget build(BuildContext context) {
     final GlobalBloc globalBloc = Provider.of<GlobalBloc>(context);
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: const Text("New Entry"),
         backgroundColor: kPrimaryColor,
@@ -213,6 +221,7 @@ class _NewEntryPageState extends State<NewEntryPage> {
                         startTime: startTime);
 
                     globalBloc.updateMedicineList(newEntryMedicine);
+                    schedualNotification(newEntryMedicine);
                     Navigator.push(context, MaterialPageRoute(builder: (_) {
                       return const SuccessScreen();
                     }));
@@ -247,6 +256,60 @@ class _NewEntryPageState extends State<NewEntryPage> {
       ids.add(rng.nextInt(1000000));
     }
     return ids;
+  }
+
+  initializNotifications() async {
+    var initializationSettingsAndroid =
+        const AndroidInitializationSettings('mipmap/ic_luncher_icon');
+    var initializationSettingsIOS = const IOSInitializationSettings();
+    var initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future onSelectNotification(String? payload) async {
+    if (payload != null) {
+      debugPrint('Notification payload $payload');
+    }
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MyHomePage(),
+        ));
+  }
+
+  Future<void> schedualNotification(Medicine medicine) async {
+    var hour = int.parse(medicine.startTime![0] + medicine.startTime![1]);
+    var ogValue = hour;
+    var minute = int.parse(medicine.startTime![2] + medicine.startTime![3]);
+
+    var androidPlatformChannelSpecifics = const AndroidNotificationDetails(
+        "repeatDailyAtTime channel id", "repeatDailyAtTime channel name", "",
+        importance: Importance.max,
+        ledColor: Colors.red,
+        ledOffMs: 1000,
+        ledOnMs: 1000,
+        enableLights: true);
+
+    var iosPlatformChannelSpecifics = IOSNotificationDetails();
+    var platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
+        iOS: iosPlatformChannelSpecifics);
+
+    for (int i = 0; i < (24 / medicine.interval!).floor(); i++) {
+      if (hour + (medicine.interval! * i) > 23) {
+        hour = hour + (medicine.interval! * i) - 24;
+      } else {
+        hour = hour + (medicine.interval! * i);
+      }
+      await flutterLocalNotificationsPlugin.showDailyAtTime(
+          int.parse(medicine.notificationId![i]),
+          'Remider ${medicine.medicineName}',
+          "",
+          Time(hour, minute, 0),
+          platformChannelSpecifics);
+      hour = ogValue;
+    }
   }
 
   void initializeErrorList() {
